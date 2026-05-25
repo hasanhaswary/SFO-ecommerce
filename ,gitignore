@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+
+# Environment variables (contains passwords!)
+.env
+
+# Database (if using local SQLite - you're using PostgreSQL so optional)
+*.db
+*.sqlite
+
+# Prisma (keep migrations, ignore dev db files)
+prisma/*.db
+prisma/*.db-journal
+
+# Logs
+npm-debug.log
+server.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code (if using)
+.vscode/
+
+# Package locks (optional - some teams commit these)
+package-lock.json
+yarn.lock
+
+# Generated files
+dist/
+build/
+
+# Temp files
+*.tmp
+*.swp
