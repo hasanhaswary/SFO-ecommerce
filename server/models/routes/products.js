@@ -3,3 +3,9 @@ import sql from '../database/src.js';
 
 const router = express.Router();
 
+router.get('/', async (req, res) => {
+    const products = await sql `
+        SELECT * FROM products
+    `;
+    res.json(products);
+});
