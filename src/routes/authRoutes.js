@@ -28,7 +28,7 @@ router.post('/login', login);
  * @desc    Retrieve profile details for currently authenticated user
  * @access  Private (Requires valid JWT token in Authorization header)
  */
-router.get('/me', authenticateToken, getUser);
+router.get('/user', authenticateToken, getUser);
 
 /**
  * @route   POST /api/auth/forgot-password
