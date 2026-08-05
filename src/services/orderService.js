@@ -59,9 +59,15 @@ export const createOrder = async (userId, orderData) => {
 
   // Calculate shipping cost based on method and cart value (in ZAR)
   let shippingCost = 0;
-  if (shippingMethod === 'Expedited Air') shippingCost = 250.00;
+  if (!shippingMethod || shippingMethod === 'Standard Ground') {
+    if (subtotal < 1500) shippingCost = 150.00; // Free ground shipping over R 1 500
+  } else if (shippingMethod === 'Expedited Air') shippingCost = 250.00;
   else if (shippingMethod === 'Summit Priority') shippingCost = 450.00;
-  else if (subtotal < 1500) shippingCost = 150.00; // Free ground shipping over R 1 500
+  else {
+    const error = new Error('Invalid shipping method.');
+    error.statusCode = 400;
+    throw error;
+  }
 
   // Apply promo code discount if valid
   let discountAmount = 0;
