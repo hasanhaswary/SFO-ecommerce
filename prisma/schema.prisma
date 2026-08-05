@@ -1,0 +1,106 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               Int            @id @default(autoincrement())
+  email            String         @unique
+  password         String
+  fullName         String
+  bio              String         @default("High-altitude specialist. Focus on ultralight alpine setups and extreme climate testing.")
+  loyaltyTier      String         @default("Lead Explorer") //demonstration purpose
+  loyaltyPoints    Int            @default(8450) //demonstration purpose
+  milesLogged      Float          @default(1248.5) //demonstration purpose
+  totalSummits     Int            @default(14) //demonstration purpose
+  activeDeployments Int           @default(2) //demonstration purpose
+  twoFactorEnabled Boolean        @default(false)
+  phone            String         @default("+27 123456789")
+  shippingAddress  String         @default("9 Jackson Road, Tokai, Cape Town, Western Cape, South Africa, 7800")
+  billingAddress   String         @default("9 Jackson Road, Tokai, Cape Town, Western Cape, South Africa, 7800")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  orders           Order[]
+  reviews          Review[]
+  wishlist         WishlistItem[]
+}
+
+model Product {
+  id               Int            @id @default(autoincrement())
+  name             String
+  slug             String         @unique
+  category         String
+  price            Float
+  originalPrice    Float?
+  description      String
+  image            String
+  additionalImages String?        // Comma separated or JSON string
+  weight           String?
+  weatherproof     String?
+  rating           Float          @default(4.8)
+  reviewCount      Int            @default(142)
+  stock            Int            @default(20)
+  tags             String?        // Comma separated tags e.g. "ULTRALIGHT,GRIP"
+  specs            String?        // JSON format string of technical specs
+  materials        String?        // Material details
+  fieldNotes       String?        // Field notes / testing notes
+  createdAt        DateTime       @default(now())
+  orderItems       OrderItem[]
+  reviews          Review[]
+  wishlist         WishlistItem[]
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  orderNumber     String      @unique
+  userId          Int
+  user            User        @relation(fields: [userId], references: [id])
+  status          String      @default("DELIVERED") // DELIVERED, IN_TRANSIT, OUT_FOR_DELIVERY, RETURNED, PROCESSING
+  statusLabel     String      @default("Verified Mission")
+  totalAmount     Float
+  subtotal        Float
+  shippingCost    Float       @default(0)
+  taxAmount       Float       @default(0)
+  discountAmount  Float       @default(0)
+  shippingMethod  String      @default("Standard Ground")
+  shippingAddress String
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  variant   String?
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  title     String?
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model WishlistItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
