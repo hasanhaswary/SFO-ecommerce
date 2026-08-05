@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/hasanhaswary/SFO-ecommerce#readme",
   "dependencies": {
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "5.22",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -27,7 +27,7 @@
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
-    "prisma": "^7.9.1",
+    "prisma": "5.22",
     "tsx": "^4.23.8"
   }
 }
