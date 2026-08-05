@@ -69,6 +69,9 @@ export const getOrderById = async (req, res, next) => {
 export const reorder = async (req, res, next) => {
   try {
     const orderId = parseInt(req.params.id, 10);
+    if (isNaN(orderId)) {
+      return res.status(400).json({ success: false, error: 'Invalid order ID' });
+    }
     const reorderItems = await orderService.reorderItems(req.user.id, orderId);
 
     res.json({
