@@ -32,6 +32,12 @@ export const getUserProfile = async (userId) => {
     }
   });
 
+  if (!user) {
+    const error = new Error('User profile not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
   return user;
 };
 
