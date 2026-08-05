@@ -50,6 +50,24 @@ export const getUserProfile = async (userId) => {
 export const updateUserProfile = async (userId, updateFields) => {
   const { fullName, bio, phone, shippingAddress, billingAddress } = updateFields;
 
+  const hasUpdates =
+    fullName !== undefined ||
+    bio !== undefined ||
+    phone !== undefined ||
+    shippingAddress !== undefined ||
+    billingAddress !== undefined;
+
+  if (!hasUpdates) {
+    const error = new Error('No profile fields provided to update.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (fullName !== undefined && !fullName.trim()) {
+    const error = new Error('Full name cannot be blank.');
+    error.statusCode = 400;
+    throw error;
+  }
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
