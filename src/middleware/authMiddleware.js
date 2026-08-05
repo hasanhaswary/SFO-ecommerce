@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'hasn_summit_forge_jwt_super_secret_key_2026';
+
+
+
+export const JWT_SECRET = process.env.JWT_SECRET;
+
 
 /**
  * Authentication Middleware
@@ -85,4 +89,3 @@ export const optionalToken = async (req, res, next) => {
   next();
 };
 
-export { JWT_SECRET };
