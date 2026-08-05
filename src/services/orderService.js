@@ -204,10 +204,16 @@ export const reorderItems = async (userId, orderId) => {
  * @returns {Promise<Object>} Updated order object
  */
 export const refundOrder = async (userId, orderId) => {
-  const updatedOrder = await prisma.order.update({
-    where: { id: orderId },
+  const result = await prisma.order.updateMany({
+    where: { id: orderId, userId },
     data: { status: 'RETURNED' }
   });
 
-  return updatedOrder;
+  if (result.count === 0) {
+    const error = new Error('Order mission not found in deployment history.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return await prisma.order.findUnique({ where: { id: orderId } });
 };
