@@ -100,7 +100,7 @@ export const createOrder = async (userId, orderData) => {
     }
   });
 
-  // Award user loyalty points (10 points per dollar spent)
+  // Award user loyalty points (10 points per ZAR spent)
   const earnedPoints = Math.floor(totalAmount * 10);
   await prisma.user.update({
     where: { id: userId },
