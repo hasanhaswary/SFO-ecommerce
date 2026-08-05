@@ -141,8 +141,13 @@ export const getOrderByIdOrNumber = async (userId, param) => {
     const cleanNum = param.startsWith('#') ? param : `#${param}`;
     whereClause.orderNumber = cleanNum;
   } else {
-    const idNum = parseInt(param, 10);
-    if (!isNaN(idNum)) whereClause.id = idNum;
+    const idNum = Number.parseInt(param, 10);
+    if (Number.isNaN(idNum)) {
+      const error = new Error('Invalid order identifier.');
+      error.statusCode = 400;
+      throw error;
+    }
+    whereClause.id = idNum;
   }
 
   const order = await prisma.order.findFirst({
