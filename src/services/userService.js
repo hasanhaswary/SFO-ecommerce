@@ -105,8 +105,13 @@ export const updateUserProfile = async (userId, updateFields) => {
  */
 export const updateUserSecurity = async (userId, { currentPassword, newPassword, twoFactorEnabled }) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  const updateData = {};
+  if (!user) {
+    const error = new Error('User not found.');
+    error.statusCode = 404;
+    throw error;
+  }
 
+  const updateData = {};
   if (twoFactorEnabled !== undefined) {
     if (typeof twoFactorEnabled === 'boolean') {
       updateData.twoFactorEnabled = twoFactorEnabled;
