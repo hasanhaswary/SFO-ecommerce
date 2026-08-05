@@ -90,7 +90,15 @@ export const updateUserSecurity = async (userId, { currentPassword, newPassword,
   const updateData = {};
 
   if (twoFactorEnabled !== undefined) {
-    updateData.twoFactorEnabled = Boolean(twoFactorEnabled);
+    if (typeof twoFactorEnabled === 'boolean') {
+      updateData.twoFactorEnabled = twoFactorEnabled;
+    } else if (twoFactorEnabled === 'true' || twoFactorEnabled === 'false') {
+      updateData.twoFactorEnabled = twoFactorEnabled === 'true';
+    } else {
+      const error = new Error('twoFactorEnabled must be a boolean.');
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   if (newPassword) {
