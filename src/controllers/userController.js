@@ -29,7 +29,18 @@ export const getProfile = async (req, res, next) => {
  */
 export const updateProfile = async (req, res, next) => {
   try {
-    const updatedUser = await userService.updateUserProfile(req.user.id, req.body);
+    const allowedKeys = ['fullName', 'bio', 'phone', 'shippingAddress', 'billingAddress'];
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const hasAnyUpdate = allowedKeys.some((k) => body[k] !== undefined);
+
+    if (!hasAnyUpdate) {
+      return res.status(400).json({
+        success: false,
+        error: 'No profile fields provided to update.'
+      });
+    }
+
+    const updatedUser = await userService.updateUserProfile(req.user.id, body);
     res.json({
       success: true,
       message: 'Command Center profile manifest updated successfully.',
