@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getMe, forgotPassword, getUser } from '../controllers/authController.js';
+import { register, login, forgotPassword, getUser } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -24,7 +24,7 @@ router.post('/register', register);
 router.post('/login', login);
 
 /**
- * @route   GET /api/auth/me
+ * @route   GET /api/auth/user
  * @desc    Retrieve profile details for currently authenticated user
  * @access  Private (Requires valid JWT token in Authorization header)
  */
