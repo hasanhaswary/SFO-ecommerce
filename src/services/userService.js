@@ -162,6 +162,9 @@ export const updateUserSecurity = async (userId, { currentPassword, newPassword,
  * @returns {Promise<boolean>} True if deleted successfully
  */
 export const retireUserAccount = async (userId) => {
-  await prisma.user.delete({ where: { id: userId } });
+  await prisma.$transaction([
+    prisma.order.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } })
+  ]);
   return true;
 };
