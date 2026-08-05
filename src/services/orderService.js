@@ -74,8 +74,7 @@ export const createOrder = async (userId, orderData) => {
   const totalAmount = Math.round((subtotal - discountAmount + shippingCost + taxAmount) * 100) / 100;
 
   // Generate unique order number (e.g. #SF-98412)
-  const randomNum = Math.floor(10000 + Math.random() * 90000);
-  const orderNumber = `#SF-${randomNum}`;
+  const orderNumber = `#SF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
   const formattedAddress = `${streetAddress}, ${city}, ${state} ${zipCode}`;
 
