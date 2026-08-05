@@ -178,12 +178,12 @@ export const getOrderByIdOrNumber = async (userId, param) => {
  * @returns {Promise<Array>} List of reorderable item objects
  */
 export const reorderItems = async (userId, orderId) => {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, userId },
     include: { items: { include: { product: true } } }
   });
 
-  if (!order || order.userId !== userId) {
+  if (!order) {
     const error = new Error('Original mission order not found.');
     error.statusCode = 404;
     throw error;
