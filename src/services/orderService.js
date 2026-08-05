@@ -46,7 +46,12 @@ export const createOrder = async (userId, orderData) => {
     }
 
     const itemPrice = product.price;
-    const quantity = parseInt(item.quantity, 10) || 1;
+    const quantity = Number.parseInt(item.quantity, 10);
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      const error = new Error(`Invalid quantity for product ID ${item.productId}.`);
+      error.statusCode = 400;
+      throw error;
+    }
     subtotal += itemPrice * quantity;
 
     orderItemsData.push({
