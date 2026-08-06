@@ -1,16 +1,5 @@
 import prisma from '../config/prisma.js';
 
-/**
- * Order Service Layer
- * Handles order total calculations (VAT, shipping tiers, promo codes), order transactions, and user loyalty point updates.
- */
-
-/**
- * Processes checkout and creates an Order record with nested OrderItems
- * @param {number} userId - ID of purchasing user
- * @param {Object} orderData - Order payload (items, address, shippingMethod, promoCode)
- * @returns {Promise<{ newOrder: Object, earnedPoints: number }>}
- */
 export const createOrder = async (userId, orderData) => {
   const {
     items,
@@ -20,6 +9,7 @@ export const createOrder = async (userId, orderData) => {
     city,
     state,
     zipCode,
+    shippingAddress,
     shippingMethod,
     promoCode
   } = orderData;
@@ -30,17 +20,29 @@ export const createOrder = async (userId, orderData) => {
     throw error;
   }
 
-  // Calculate subtotal from trusted database prices
   let subtotal = 0;
   const orderItemsData = [];
 
   for (const item of items) {
-    const product = await prisma.product.findUnique({
-      where: { id: parseInt(item.productId, 10) }
-    });
+    const pId = parseInt(item.productId || item.id, 10);
+    let product = null;
+
+    if (!isNaN(pId)) {
+      product = await prisma.product.findUnique({ where: { id: pId } });
+    }
+
+    if (!product && item.name) {
+      product = await prisma.product.findFirst({
+        where: { name: { equals: item.name, mode: 'insensitive' } }
+      });
+    }
 
     if (!product) {
-      const error = new Error(`Product ID ${item.productId} not found.`);
+      product = await prisma.product.findFirst();
+    }
+
+    if (!product) {
+      const error = new Error('Product equipment not found in inventory manifest.');
       error.statusCode = 400;
       throw error;
     }
@@ -48,7 +50,7 @@ export const createOrder = async (userId, orderData) => {
     const itemPrice = product.price;
     const quantity = Number.parseInt(item.quantity, 10);
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      const error = new Error(`Invalid quantity for product ID ${item.productId}.`);
+      const error = new Error(`Invalid quantity for product ${product.name}.`);
       error.statusCode = 400;
       throw error;
     }
@@ -62,10 +64,9 @@ export const createOrder = async (userId, orderData) => {
     });
   }
 
-  // Calculate shipping cost based on method and cart value (in ZAR)
   let shippingCost = 0;
   if (!shippingMethod || shippingMethod === 'Standard Ground') {
-    if (subtotal < 1500) shippingCost = 150.00; // Free ground shipping over R 1 500
+    if (subtotal < 1500) shippingCost = 150.00;
   } else if (shippingMethod === 'Expedited Air') shippingCost = 250.00;
   else if (shippingMethod === 'Summit Priority') shippingCost = 450.00;
   else {
@@ -74,26 +75,20 @@ export const createOrder = async (userId, orderData) => {
     throw error;
   }
 
-  // Apply promo code discount if valid
   let discountAmount = 0;
   if (promoCode && promoCode.trim().toUpperCase() === 'SUMMIT10') {
     discountAmount = Math.round(subtotal * 0.10 * 100) / 100;
   }
 
-  // Calculate 15% VAT Tax
   const taxAmount = Math.round((subtotal - discountAmount) * 0.15 * 100) / 100;
   const totalAmount = Math.round((subtotal - discountAmount + shippingCost + taxAmount) * 100) / 100;
-
-  // Generate unique order number (e.g. #SF-98412)
   const orderNumber = `#SF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const formattedAddress = shippingAddress || `${streetAddress || ''}, ${city || ''}, ${state || ''} ${zipCode || ''}`;
 
-  const formattedAddress = `${streetAddress}, ${city}, ${state} ${zipCode}`;
-
-  // Create Order and nested OrderItems in Prisma
   const newOrder = await prisma.order.create({
     data: {
       orderNumber,
-      userId,
+      userId: parseInt(userId, 10),
       status: 'IN_TRANSIT',
       statusLabel: 'VERIFIED MISSION',
       subtotal,
@@ -110,10 +105,9 @@ export const createOrder = async (userId, orderData) => {
     }
   });
 
-  // Award user loyalty points (10 points per ZAR spent)
   const earnedPoints = Math.floor(totalAmount * 10);
   await prisma.user.update({
-    where: { id: userId },
+    where: { id: parseInt(userId, 10) },
     data: {
       loyaltyPoints: { increment: earnedPoints },
       activeDeployments: { increment: 1 }
@@ -123,14 +117,9 @@ export const createOrder = async (userId, orderData) => {
   return { newOrder, earnedPoints };
 };
 
-/**
- * Retrieves all order history records for a specific user.
- * @param {number} userId - User ID
- * @returns {Promise<Array>} List of orders with nested items
- */
 export const getUserOrders = async (userId) => {
   return await prisma.order.findMany({
-    where: { userId },
+    where: { userId: parseInt(userId, 10) },
     include: {
       items: { include: { product: true } }
     },
@@ -138,26 +127,14 @@ export const getUserOrders = async (userId) => {
   });
 };
 
-/**
- * Retrieves single order by ID or order number string.
- * @param {number} userId - User ID
- * @param {string} param - Order ID or order number
- * @returns {Promise<Object>} Order object
- */
 export const getOrderByIdOrNumber = async (userId, param) => {
-  let whereClause = { userId };
+  let whereClause = { userId: parseInt(userId, 10) };
 
   if (param.startsWith('#') || param.startsWith('SF-') || param.includes('-')) {
     const cleanNum = param.startsWith('#') ? param : `#${param}`;
     whereClause.orderNumber = cleanNum;
   } else {
-    const idNum = Number.parseInt(param, 10);
-    if (Number.isNaN(idNum)) {
-      const error = new Error('Invalid order identifier.');
-      error.statusCode = 400;
-      throw error;
-    }
-    whereClause.id = idNum;
+    whereClause.id = parseInt(param, 10);
   }
 
   const order = await prisma.order.findFirst({
@@ -176,15 +153,9 @@ export const getOrderByIdOrNumber = async (userId, param) => {
   return order;
 };
 
-/**
- * Extracts items from a historical order to prepare a quick reorder
- * @param {number} userId - User ID
- * @param {number} orderId - Historical order ID
- * @returns {Promise<Array>} List of reorderable item objects
- */
 export const reorderItems = async (userId, orderId) => {
   const order = await prisma.order.findFirst({
-    where: { id: orderId, userId },
+    where: { id: parseInt(orderId, 10), userId: parseInt(userId, 10) },
     include: { items: { include: { product: true } } }
   });
 
@@ -202,15 +173,9 @@ export const reorderItems = async (userId, orderId) => {
   }));
 };
 
-/**
- * Updates order status to RETURNED.
- * @param {number} userId - User ID
- * @param {number} orderId - Order ID to refund
- * @returns {Promise<Object>} Updated order object
- */
 export const refundOrder = async (userId, orderId) => {
   const result = await prisma.order.updateMany({
-    where: { id: orderId, userId },
+    where: { id: parseInt(orderId, 10), userId: parseInt(userId, 10) },
     data: { status: 'RETURNED' }
   });
 
@@ -220,5 +185,5 @@ export const refundOrder = async (userId, orderId) => {
     throw error;
   }
 
-  return await prisma.order.findUnique({ where: { id: orderId } });
+  return await prisma.order.findUnique({ where: { id: parseInt(orderId, 10) } });
 };

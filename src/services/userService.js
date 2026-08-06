@@ -1,19 +1,9 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 
-/**
- * User Service Layer
- * Handles fetching profile stats, updating user manifest fields, changing passwords/2FA, and deleting user accounts
- */
-
-/**
- * Retrieves user profile manifest details and statistics
- * @param {number} userId - User ID
- * @returns {Promise<Object>} Profile object
- */
 export const getUserProfile = async (userId) => {
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: parseInt(userId, 10) },
     select: {
       id: true,
       email: true,
@@ -41,12 +31,6 @@ export const getUserProfile = async (userId) => {
   return user;
 };
 
-/**
- * Updates editable profile fields for a user.
- * @param {number} userId - User ID
- * @param {Object} updateFields - { fullName, bio, phone, shippingAddress, billingAddress }
- * @returns {Promise<Object>} Updated profile object
- */
 export const updateUserProfile = async (userId, updateFields) => {
   const { fullName, bio, phone, shippingAddress, billingAddress } = updateFields;
 
@@ -68,8 +52,9 @@ export const updateUserProfile = async (userId, updateFields) => {
     error.statusCode = 400;
     throw error;
   }
+
   const updatedUser = await prisma.user.update({
-    where: { id: userId },
+    where: { id: parseInt(userId, 10) },
     data: {
       ...(fullName && { fullName: fullName.trim() }),
       ...(bio !== undefined && { bio }),
@@ -97,14 +82,8 @@ export const updateUserProfile = async (userId, updateFields) => {
   return updatedUser;
 };
 
-/**
- * Updates password passkey or 2FA settings for a user
- * @param {number} userId - User ID
- * @param {Object} securityData - { currentPassword, newPassword, twoFactorEnabled }
- * @returns {Promise<Object>} Updated user security record
- */
 export const updateUserSecurity = async (userId, { currentPassword, newPassword, twoFactorEnabled }) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { id: parseInt(userId, 10) } });
   if (!user) {
     const error = new Error('User not found.');
     error.statusCode = 404;
@@ -131,7 +110,6 @@ export const updateUserSecurity = async (userId, { currentPassword, newPassword,
       throw error;
     }
 
-    // Verify current password before allowing password change
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       const error = new Error('Verification failed. Current passkey is incorrect.');
@@ -143,7 +121,7 @@ export const updateUserSecurity = async (userId, { currentPassword, newPassword,
   }
 
   const updatedUser = await prisma.user.update({
-    where: { id: userId },
+    where: { id: parseInt(userId, 10) },
     data: updateData,
     select: {
       id: true,
@@ -156,15 +134,10 @@ export const updateUserSecurity = async (userId, { currentPassword, newPassword,
   return updatedUser;
 };
 
-/**
- * Permanently deletes user account from database
- * @param {number} userId - User ID
- * @returns {Promise<boolean>} True if deleted successfully
- */
 export const retireUserAccount = async (userId) => {
   await prisma.$transaction([
-    prisma.order.deleteMany({ where: { userId } }),
-    prisma.user.delete({ where: { id: userId } })
+    prisma.order.deleteMany({ where: { userId: parseInt(userId, 10) } }),
+    prisma.user.delete({ where: { id: parseInt(userId, 10) } })
   ]);
   return true;
 };
