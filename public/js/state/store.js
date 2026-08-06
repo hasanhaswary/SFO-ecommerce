@@ -21,6 +21,7 @@ export const AppState = {
   currentProduct: null,
   currentView: 'home',
   activeCategory: 'All',
+  isMainPage: true,
   searchQuery: '',
   currentSort: 'newest',
   selectedProductSlug: null,
