@@ -4,13 +4,19 @@
  * Synchronizes cart, token, and user session to localStorage.
  */
 
-const initialUser = JSON.parse(localStorage.getItem('sf_user') || 'null');
+const storage = typeof localStorage !== 'undefined' ? localStorage : {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {}
+};
+
+const initialUser = JSON.parse(storage.getItem('sf_user') || 'null');
 
 export const AppState = {
-  token: localStorage.getItem('sf_token') || null,
+  token: storage.getItem('sf_token') || null,
   user: initialUser,
-  cart: JSON.parse(localStorage.getItem('sf_cart') || '[]'),
-  wishlist: initialUser ? JSON.parse(localStorage.getItem(`sf_wishlist_${initialUser.id}`) || '[]') : JSON.parse(localStorage.getItem('sf_wishlist') || '[]'),
+  cart: JSON.parse(storage.getItem('sf_cart') || '[]'),
+  wishlist: initialUser ? JSON.parse(storage.getItem(`sf_wishlist_${initialUser.id}`) || '[]') : JSON.parse(storage.getItem('sf_wishlist') || '[]'),
   products: [],
   currentProduct: null,
   currentView: 'home',
@@ -38,14 +44,14 @@ export const AppState = {
   setAuth(user, token) {
     this.user = user;
     this.token = token;
-    if (token) localStorage.setItem('sf_token', token);
-    else localStorage.removeItem('sf_token');
+    if (token) storage.setItem('sf_token', token);
+    else storage.removeItem('sf_token');
 
     if (user) {
-      localStorage.setItem('sf_user', JSON.stringify(user));
-      this.wishlist = JSON.parse(localStorage.getItem(`sf_wishlist_${user.id}`) || '[]');
+      storage.setItem('sf_user', JSON.stringify(user));
+      this.wishlist = JSON.parse(storage.getItem(`sf_wishlist_${user.id}`) || '[]');
     } else {
-      localStorage.removeItem('sf_user');
+      storage.removeItem('sf_user');
       this.wishlist = [];
     }
     this.notify();
@@ -57,7 +63,7 @@ export const AppState = {
 
   setCart(cart) {
     this.cart = cart;
-    localStorage.setItem('sf_cart', JSON.stringify(cart));
+    storage.setItem('sf_cart', JSON.stringify(cart));
     this.notify();
   },
 
@@ -108,9 +114,9 @@ export const AppState = {
     }
 
     if (this.user) {
-      localStorage.setItem(`sf_wishlist_${this.user.id}`, JSON.stringify(this.wishlist));
+      storage.setItem(`sf_wishlist_${this.user.id}`, JSON.stringify(this.wishlist));
     } else {
-      localStorage.setItem('sf_wishlist', JSON.stringify(this.wishlist));
+      storage.setItem('sf_wishlist', JSON.stringify(this.wishlist));
     }
 
     this.notify();
