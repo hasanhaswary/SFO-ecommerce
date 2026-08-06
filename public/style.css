@@ -1,0 +1,44 @@
+/* ==========================================================================
+   SUMMIT FORGE OUTDOOR - DESIGN SYSTEM & STYLESHEET
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Montserrat:wght@600;700;800;900&display=swap');
+
+:root {
+  /* Brand Color Palette */
+  --color-primary: #051a0f;
+  --color-primary-container: #1a2f23;
+  --color-primary-light: #2c4737;
+  --color-accent: #cc5500;
+  --color-accent-hover: #e66000;
+  --color-secondary-container: #ff7a2e;
+  --color-slate: #4a5568;
+  --color-slate-light: #737973;
+  --color-bg: #f8fafa;
+  --color-surface: #ffffff;
+  --color-surface-dim: #eceeee;
+  --color-surface-dark: #111a14;
+  --color-text: #191c1d;
+  --color-text-muted: #424843;
+  --color-text-inverse: #f8fafa;
+  --color-border: #c2c8c2;
+  --color-border-dark: #1a2f23;
+  --color-border-subtle: #e1e3e3;
+  --color-error: #ba1a1a;
+  --color-success: #1b8045;
+
+  /* Typography */
+  --font-display: 'Montserrat', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Layout */
+  --container-max: 1280px;
+  --gutter: 24px;
+  --border-radius-sharp: 0px;
+  --border-radius-pill: 9999px;
+
+  /* Shadows (Hard Brutalist Offsets) */
+  --shadow-hard: 4px 4px 0px #051a0f;
+  --shadow-accent: 4px 4px 0px #612500;
+}
