@@ -1,58 +1,66 @@
 /**
- * Centralized State Management Store (Pub/Sub Pattern)
- * Holds reactive application state (cart, wishlist, auth tokens, active navigation)
- * and synchronizes state changes to LocalStorage so data persists across browser reloads.
+ * Global State Management Store
+ * Manages reactive state for authentication, cart, wishlist, active page navigation, search, and checkout state.
+ * Synchronizes cart, token, and user session to localStorage.
  */
-class AppStore {
-  constructor() {
-    // Restore state from LocalStorage or default to empty values
-    this.cart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
-    this.wishlist = JSON.parse(localStorage.getItem('sf_wishlist') || '[]');
-    this.token = localStorage.getItem('sf_token') || null;
-    this.user = JSON.parse(localStorage.getItem('sf_user') || 'null');
-    
-    // UI Navigation State
-    this.currentCategory = 'All';
-    this.searchQuery = '';
-    this.currentSort = 'newest';
-    this.activePage = 'home'; // Active view ('home', 'detail', 'checkout', 'login', 'orders', 'settings')
-    this.selectedProductSlug = null;
 
-    // List of subscriber callback functions notified whenever state changes
-    this.listeners = [];
-  }
+const initialUser = JSON.parse(localStorage.getItem('sf_user') || 'null');
 
-  /**
-   * Registers a subscriber callback function that runs whenever state is updated
-   * @param {Function} listener - Callback function receiving current store instance
-   */
-  subscribe(listener) {
-    this.listeners.push(listener);
-  }
+export const AppState = {
+  token: localStorage.getItem('sf_token') || null,
+  user: initialUser,
+  cart: JSON.parse(localStorage.getItem('sf_cart') || '[]'),
+  wishlist: initialUser ? JSON.parse(localStorage.getItem(`sf_wishlist_${initialUser.id}`) || '[]') : JSON.parse(localStorage.getItem('sf_wishlist') || '[]'),
+  products: [],
+  currentProduct: null,
+  currentView: 'home',
+  activeCategory: 'All',
+  searchQuery: '',
+  currentSort: 'newest',
+  selectedProductSlug: null,
+  checkoutStep: 1,
+  checkoutShipping: null,
+  selectedPaymentMethod: 'card',
+  lastCompletedOrder: null,
+  orders: [],
+  appliedPromo: null,
 
-  /**
-   * Triggers all subscriber callbacks to re-render UI components on state change
-   */
+  listeners: [],
+
+  subscribe(callback) {
+    this.listeners.push(callback);
+  },
+
   notify() {
     this.listeners.forEach(cb => cb(this));
-  }
+  },
 
-  /**
-   * Updates cart array and persists to LocalStorage
-   * @param {Array} cart - Updated array of cart item objects
-   */
+  setAuth(user, token) {
+    this.user = user;
+    this.token = token;
+    if (token) localStorage.setItem('sf_token', token);
+    else localStorage.removeItem('sf_token');
+
+    if (user) {
+      localStorage.setItem('sf_user', JSON.stringify(user));
+      this.wishlist = JSON.parse(localStorage.getItem(`sf_wishlist_${user.id}`) || '[]');
+    } else {
+      localStorage.removeItem('sf_user');
+      this.wishlist = [];
+    }
+    this.notify();
+  },
+
+  logout() {
+    this.setAuth(null, null);
+  },
+
   setCart(cart) {
     this.cart = cart;
     localStorage.setItem('sf_cart', JSON.stringify(cart));
     this.notify();
-  }
+  },
 
-  /**
-   * Adds an item to the shopping cart or increments quantity if item variant exists
-   * @param {Object} product - Product object
-   * @param {number} quantity - Number of items to add
-   * @param {string} variant - Product variant selection
-   */
   addToCart(product, quantity = 1, variant = 'Standard') {
     const existingIndex = this.cart.findIndex(
       item => item.productId === product.id && item.variant === variant
@@ -70,31 +78,27 @@ class AppStore {
         variant
       });
     }
-
     this.setCart(this.cart);
-  }
+  },
 
-  /**
-   * Removes a product from the cart array by index position
-   * @param {number} index - Position index in cart array
-   */
   removeFromCart(index) {
     this.cart.splice(index, 1);
     this.setCart(this.cart);
-  }
+  },
 
-  /**
-   * Empties all items from the shopping cart
-   */
+  updateCartQuantity(index, newQty) {
+    if (newQty <= 0) {
+      this.removeFromCart(index);
+    } else {
+      this.cart[index].quantity = newQty;
+      this.setCart(this.cart);
+    }
+  },
+
   clearCart() {
     this.setCart([]);
-  }
+  },
 
-  /**
-   * Toggles product in/out of the user's wishlist array
-   * @param {number} productId - Product ID to toggle
-   * @returns {boolean} True if product is now wishlisted, false if removed
-   */
   toggleWishlist(productId) {
     const idx = this.wishlist.indexOf(productId);
     if (idx > -1) {
@@ -102,35 +106,14 @@ class AppStore {
     } else {
       this.wishlist.push(productId);
     }
-    localStorage.setItem('sf_wishlist', JSON.stringify(this.wishlist));
+
+    if (this.user) {
+      localStorage.setItem(`sf_wishlist_${this.user.id}`, JSON.stringify(this.wishlist));
+    } else {
+      localStorage.setItem('sf_wishlist', JSON.stringify(this.wishlist));
+    }
+
     this.notify();
     return this.wishlist.includes(productId);
   }
-
-  /**
-   * Updates authentication state (user profile + JWT token) in store and LocalStorage
-   * @param {Object|null} user - User profile object or null if logging out
-   * @param {string|null} token - JWT authentication token string or null
-   */
-  setAuth(user, token) {
-    this.user = user;
-    this.token = token;
-    if (token) localStorage.setItem('sf_token', token);
-    else localStorage.removeItem('sf_token');
-
-    if (user) localStorage.setItem('sf_user', JSON.stringify(user));
-    else localStorage.removeItem('sf_user');
-
-    this.notify();
-  }
-
-  /**
-   * Logs out current user by clearing stored auth credentials
-   */
-  logout() {
-    this.setAuth(null, null);
-  }
-}
-
-// Export singleton instance of AppStore
-export const store = new AppStore();
+};

@@ -1,56 +1,45 @@
-import { store } from '../state/store.js';
-import { formatCurrency } from '../utils/formatters.js';
+import { AppState } from '../state/store.js';
 
-export const updateCartDrawerUI = () => {
+export function updateCartDrawerUI() {
+  const count = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
   const badge = document.getElementById('cart-count-badge');
-  const body = document.getElementById('cart-drawer-body-container');
-  const footer = document.getElementById('cart-drawer-footer-container');
-
-  const totalItems = store.cart.reduce((sum, item) => sum + item.quantity, 0);
-
   if (badge) {
-    badge.textContent = totalItems;
-    badge.style.display = totalItems > 0 ? 'flex' : 'none';
+    badge.innerText = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
   }
 
-  if (!body || !footer) return;
+  const container = document.getElementById('cart-drawer-items');
+  if (!container) return;
 
-  if (store.cart.length === 0) {
-    body.innerHTML = `
-      <div style="text-align: center; padding: 60px 20px; color: var(--color-slate-light);">
-        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin: 0 auto 16px; opacity: 0.4;"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-        <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: #fff;">MANIFEST IS EMPTY</h4>
-        <p style="font-size: 0.85rem; margin-top: 8px;">No expedition gear loaded into current deployment manifest.</p>
+  if (AppState.cart.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; font-family: var(--font-mono); color: var(--color-slate-light);">
+        YOUR MANIFEST IS EMPTY.
       </div>
     `;
-    footer.innerHTML = '';
+    const totalEl = document.getElementById('cart-subtotal');
+    if (totalEl) totalEl.innerText = 'R 0.00';
     return;
   }
 
-  const subtotal = store.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = AppState.cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+  const totalEl = document.getElementById('cart-subtotal');
+  if (totalEl) totalEl.innerText = `R ${subtotal.toFixed(2)}`;
 
-  body.innerHTML = store.cart.map((item, index) => `
-    <div style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--color-border);">
-      <img src="${item.image}" alt="${item.name}" style="width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--color-border);">
-      <div style="flex: 1;">
-        <h5 style="font-size: 0.9rem; font-weight: 600; color: #fff;">${item.name}</h5>
-        <div style="font-size: 0.75rem; color: var(--color-slate-light); margin-top: 2px;">${item.variant}</div>
-        <div style="font-family: var(--font-mono); font-weight: 700; color: var(--color-accent); margin-top: 6px;">${formatCurrency(item.price)}</div>
+  container.innerHTML = AppState.cart.map((item, idx) => `
+    <div class="cart-drawer-item">
+      <img src="${item.image}" alt="${item.name}" class="cart-item-img">
+      <div class="cart-item-info">
+        <h5>${item.name}</h5>
+        <div class="cart-item-variant">${item.variant || 'Standard'}</div>
+        <div class="cart-item-price">R ${Number(item.price).toFixed(2)}</div>
+        <div class="qty-picker" style="margin-top: 8px;">
+          <button class="qty-btn" onclick="updateCartQty(${idx}, ${item.quantity - 1})">-</button>
+          <input type="text" class="qty-input" value="${item.quantity}" readonly>
+          <button class="qty-btn" onclick="updateCartQty(${idx}, ${item.quantity + 1})">+</button>
+        </div>
       </div>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between;">
-        <button onclick="removeFromCart(${index})" style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 1.1rem;">&times;</button>
-        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: #fff;">QTY: ${item.quantity}</span>
-      </div>
+      <button class="cart-item-remove" onclick="removeFromCart(${idx})">&times;</button>
     </div>
   `).join('');
-
-  footer.innerHTML = `
-    <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 1rem; color: #fff; margin-bottom: 16px;">
-      <span>SUBTOTAL:</span>
-      <span style="color: var(--color-accent); font-weight: 700;">${formatCurrency(subtotal)}</span>
-    </div>
-    <button class="btn btn-primary btn-block" onclick="closeCartDrawer(); navigateTo('checkout');">
-      PROCEED TO SECURE CHECKOUT
-    </button>
-  `;
-};
+}

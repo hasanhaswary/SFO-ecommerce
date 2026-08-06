@@ -1,34 +1,41 @@
-export const showToast = (message, type = 'info') => {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+/**
+ * Toast Notification Engine
+ * Displays stylish transient toast messages for actions, alerts, and system feedback.
+ */
+export function showToast(message, type = 'info') {
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = 'position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px;';
+    document.body.appendChild(toastContainer);
+  }
 
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  const bgColor = type === 'error' ? '#ba1a1a' : type === 'success' ? '#1b8045' : '#051a0f';
   toast.style.cssText = `
-    background: ${type === 'success' ? '#1b4d2e' : type === 'error' ? '#5c1d1d' : '#1e2d24'};
+    background-color: ${bgColor};
     color: #ffffff;
-    border-left: 4px solid ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
     padding: 12px 20px;
-    font-family: var(--font-mono, monospace);
-    font-size: 0.85rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-width: 280px;
-    animation: slideIn 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 4px 4px 0px #000000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
   `;
+  toast.innerText = message;
+  toastContainer.appendChild(toast);
 
-  toast.innerHTML = `
-    <span>${message}</span>
-    <button style="background:none; border:none; color:#fff; cursor:pointer; margin-left:12px;" onclick="this.parentElement.remove()">&times;</button>
-  `;
+  setTimeout(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  }, 10);
 
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
-};
-
-export const formatCurrency = (amount) => {
-  const numeric = Number(amount) || 0;
-  return `R ${numeric.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 200);
+  }, 4000);
+}
