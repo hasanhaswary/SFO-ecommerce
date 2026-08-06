@@ -17,7 +17,7 @@ export async function renderHomeView(container) {
 
   try {
     const res = await fetchProductsApi({
-      category: AppState.activeCategory,
+      category: (AppState.activeCategory && AppState.activeCategory !== 'All' && AppState.activeCategory !== 'Wishlist') ? AppState.activeCategory : null,
       search: AppState.searchQuery
     });
     if (res && res.success) {
@@ -28,9 +28,12 @@ export async function renderHomeView(container) {
   }
 
   const categories = ['All', 'Hiking', 'Running', 'Camping', 'Footwear', 'Apparel', 'Equipment'];
-  const showHero = AppState.isMainPage && !AppState.searchQuery;
+  const showHero = AppState.isMainPage && !AppState.searchQuery && AppState.activeCategory !== 'Wishlist';
 
   let displayedProducts = AppState.products;
+  if (AppState.activeCategory === 'Wishlist') {
+    displayedProducts = AppState.products.filter(p => AppState.wishlist.includes(p.id));
+  }
   if (showHero && AppState.products.length > 0) {
     const categoryMap = {};
     AppState.products.forEach(p => {

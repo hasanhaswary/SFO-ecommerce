@@ -23,11 +23,16 @@ export async function renderDetailView(container) {
 
     container.innerHTML = `
       <div class="site-container" style="padding-top: 30px;">
-        <!-- BREADCRUMB -->
-        <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-slate-light); margin-bottom: 20px;">
-          <a href="#" onclick="navigateTo('home'); return false;">HOME</a> &gt; 
-          <a href="#" onclick="selectCategory('${p.category}'); navigateTo('home'); return false;">${p.category.toUpperCase()}</a> &gt; 
-          <span style="color: var(--color-primary); font-weight: 700;">${p.name.toUpperCase()}</span>
+        <!-- HEADER TOP NAVIGATION BAR -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <button class="btn btn-secondary btn-sm" onclick="navigateTo('home')">&larr; BACK TO CATALOG</button>
+          
+          <!-- BREADCRUMB -->
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-slate-light);">
+            <a href="#" onclick="navigateTo('home'); return false;">HOME</a> &gt; 
+            <a href="#" onclick="selectCategory('${p.category}'); navigateTo('home'); return false;">${p.category.toUpperCase()}</a> &gt; 
+            <span style="color: var(--color-primary); font-weight: 700;">${p.name.toUpperCase()}</span>
+          </div>
         </div>
 
         <div class="product-detail-layout">

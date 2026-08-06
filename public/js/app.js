@@ -5,11 +5,14 @@ import { updateCartDrawerUI } from './components/cartDrawer.js';
 import { renderHomeView } from './views/homeView.js';
 import { renderDetailView } from './views/detailView.js';
 import { renderCheckoutView } from './views/checkoutView.js';
-import { renderLoginView, renderRegisterView } from './views/authViews.js';
+import { renderLoginView, renderRegisterView, renderForgotPasswordView } from './views/authViews.js';
+import { renderDashboardView } from './views/dashboardView.js';
 import { renderOrdersView } from './views/ordersView.js';
 import { renderSettingsView } from './views/settingsView.js';
+import { renderFavoritesView } from './views/favoritesView.js';
 import { loginApi, registerApi, getMeApi } from './api/authApi.js';
 import { createOrderApi } from './api/orderApi.js';
+import { apiRequest } from './api/apiClient.js';
 
 // --- ROUTER / VIEW ENGINE ---
 export async function renderApp() {
@@ -33,22 +36,31 @@ export async function renderApp() {
     case 'register':
       renderRegisterView(main);
       break;
+    case 'forgot':
+      renderForgotPasswordView(main);
+      break;
     case 'checkout':
       renderCheckoutView(main);
       break;
     case 'dashboard':
+      await renderDashboardView(main);
+      break;
     case 'orders':
       await renderOrdersView(main);
       break;
     case 'settings':
       renderSettingsView(main);
       break;
+    case 'favourites':
+    case 'wishlist':
+      await renderFavoritesView(main);
+      break;
     default:
       await renderHomeView(main);
   }
 }
 
-// --- GLOBAL WINDOW EVENT HANDLERS (EXACT MAIN.JS PARITY) ---
+// --- GLOBAL WINDOW EVENT HANDLERS ---
 window.goToMainPage = () => {
   AppState.isMainPage = true;
   AppState.activeCategory = 'All';
@@ -93,6 +105,10 @@ window.addToCart = (productId, quantity = 1, variant = null) => {
   window.openCartDrawer();
 };
 
+window.quickAddToCart = (productId) => {
+  window.addToCart(productId);
+};
+
 window.addDetailToCart = () => {
   if (AppState.currentProduct) {
     const qtyInput = document.getElementById('detail-qty-input');
@@ -131,6 +147,7 @@ window.toggleWishlist = (productId) => {
 };
 
 window.openCartDrawer = () => {
+  updateCartDrawerUI();
   const overlay = document.getElementById('cart-drawer-overlay');
   if (overlay) overlay.classList.add('open');
 };
@@ -138,6 +155,10 @@ window.openCartDrawer = () => {
 window.closeCartDrawer = () => {
   const overlay = document.getElementById('cart-drawer-overlay');
   if (overlay) overlay.classList.remove('open');
+};
+
+window.toggleWishlistModal = () => {
+  window.navigateTo('favourites');
 };
 
 window.handleHeaderSearch = (e) => {
@@ -191,14 +212,128 @@ window.handleRegisterSubmit = async (e) => {
   }
 };
 
+window.handleForgotSubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('forgot-email').value;
+  try {
+    await apiRequest('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    showToast('RECOVERY LINK DISPATCHED TO YOUR INBOX', 'success');
+    window.navigateTo('login');
+  } catch (err) {
+    showToast(err.message || 'Forgot password failed', 'error');
+  }
+};
+
+window.handleCheckoutSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!AppState.user) {
+    showToast('PLEASE LOG IN TO BASECAMP BEFORE DISPATCHING CHECKOUT', 'error');
+    window.navigateTo('login');
+    return;
+  }
+
+  const items = AppState.cart.map(i => ({
+    productId: i.productId || i.id,
+    quantity: i.quantity,
+    variant: i.variant || `${i.name} / Standard`
+  }));
+
+  const payload = {
+    items,
+    fullName: document.getElementById('chk-name').value,
+    email: document.getElementById('chk-email').value,
+    shippingAddress: `${document.getElementById('chk-street').value}, ${document.getElementById('chk-city').value}, ${document.getElementById('chk-state').value} ${document.getElementById('chk-zip').value}`,
+    shippingMethod: 'Standard Ground'
+  };
+
+  try {
+    const res = await createOrderApi(payload);
+    if (res && res.success) {
+      AppState.clearCart();
+      showToast(`EXPEDITION ORDER DISPATCHED! (${res.order?.orderNumber || 'CONFIRMED'})`, 'success');
+      window.navigateTo('orders');
+    } else {
+      showToast(res.error || 'Checkout dispatch failed', 'error');
+    }
+  } catch (err) {
+    showToast(err.message || 'Checkout server error', 'error');
+  }
+};
+
+
+window.claimRefund = async (orderId) => {
+  if (!confirm('Are you sure you want to process a return for this order?')) return;
+  try {
+    const data = await apiRequest(`/api/orders/${orderId}/refund`, { method: 'POST' });
+    showToast(data.message || 'RETURN DISPATCHED', 'success');
+    renderApp();
+  } catch (err) {
+    showToast(err.message || 'Refund claim failed', 'error');
+  }
+};
+
+window.handleSettingsUpdate = async (e) => {
+  e.preventDefault();
+  const fullName = document.getElementById('set-name').value;
+  const bio = document.getElementById('set-bio').value;
+  const twoFactorEnabled = document.getElementById('set-2fa').checked;
+  const shippingAddress = document.getElementById('set-shipping').value;
+
+  try {
+    const data = await apiRequest('/api/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ fullName, bio, shippingAddress })
+    });
+
+    await apiRequest('/api/user/security', {
+      method: 'PUT',
+      body: JSON.stringify({ twoFactorEnabled })
+    });
+
+    if (data && data.user) {
+      AppState.setAuth(data.user, AppState.token);
+    }
+
+    showToast('COMMAND CENTER MANIFEST UPDATED', 'success');
+    renderApp();
+  } catch (err) {
+    showToast(err.message || 'Settings update failed', 'error');
+  }
+};
+
+window.retireAccount = async () => {
+  if (!confirm('CRITICAL ACTION: Are you sure you want to permanently delete your account?')) return;
+  try {
+    await apiRequest('/api/user/retire', { method: 'DELETE' });
+    showToast('ACCOUNT RETIRED AND PURGED', 'info');
+    window.handleLogout();
+  } catch (err) {
+    showToast(err.message || 'Account deletion failed', 'error');
+  }
+};
+
 window.handleLogout = () => {
   AppState.logout();
   showToast('LOGGED OUT OF BASECAMP', 'info');
   window.navigateTo('home');
 };
 
-// --- INITIALIZATION ---
+// --- INITIALIZATION & SUBSCRIPTIONS ---
+AppState.subscribe(() => {
+  updateHeaderUI();
+  updateCartDrawerUI();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
+  AppState.isMainPage = true;
+  AppState.currentView = 'home';
+  AppState.activeCategory = 'All';
+  AppState.searchQuery = '';
+
   if (AppState.token) {
     try {
       const data = await getMeApi();
@@ -212,3 +347,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderApp();
 });
+
