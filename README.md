@@ -3,6 +3,9 @@
 > **A High-Performance, Framework-Free Modular E-Commerce Engine for Extreme Alpine & Ultralight Gear.**  
 > Built from the ground up with **Pure Vanilla JavaScript (ES6+)**, **Node.js (Express 5)**, **Prisma ORM**, and **PostgreSQL**.
 
+> Goal: Built this to learn the inner working of e-commerce store
+
+
 ---
 
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-yellow?style=for-the-badge&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
